@@ -1,0 +1,21 @@
+# To use:
+#
+#   $ micromamba create -f environment.yml
+#   $ micromamba activate probsamplers
+#
+name: probsamplers
+channels:
+  - conda-forge
+dependencies:
+  - pytest
+  - mypy
+  - numpy
+  - scipy
+  - pandas
+  - siuba
+  - ipython
+  - plotnine
+  - yapf
+  # Interactive only
+  - jupyterlab
+  - jupytext
