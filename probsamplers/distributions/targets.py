@@ -12,7 +12,6 @@ class baseTargetDistrib(metaclass=abc.ABCMeta):
     def __init__(self, xmin, xmax):
         self.xmin = xmin
         self.xmax = xmax
-        self.rng = np.random.default_rng()
     @classmethod
     def __subclasshook__(cls, subclass):
         return (hasattr(subclass, 'logDensity') and

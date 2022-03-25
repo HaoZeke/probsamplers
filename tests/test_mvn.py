@@ -10,4 +10,6 @@ def test_mvn_samples():
     covMat = np.array([2, -1, 0, -1, 2, -1, 0, -1, 2]).reshape(3,3)
     a_pbs = pbs.distributions.mvn.MultivariateNormal(mu, covMat)
     a_scpy = scipy.stats.multivariate_normal(mu, covMat)
-    assert a_pbs.logDensity(1) == pytest.approx(a_scpy.logpdf(1), TOL_TEST)
+    for i in range(0, 10):
+        i = i/100
+        assert a_pbs.logDensity(i) == pytest.approx(a_scpy.logpdf(i), TOL_TEST)

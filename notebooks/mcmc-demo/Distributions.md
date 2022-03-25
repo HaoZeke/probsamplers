@@ -36,10 +36,10 @@ import probsamplers.aux as aux
 ```{code-cell} ipython3
 class MultivariateNormal():
     # Static member
-    rng = np.random.default_rng(seed=1995)
+    rng = np.random.default_rng()
     def __init__(self, mu, covMat):
         self.mean = np.asarray(mu)
-        self.dim = len(self.mean)
+        self.dim = self.mean.shape[0]
         self.constant = -0.5 * np.log(2.0 * np.pi) * self.dim
         assert covMat.shape == (self.dim, self.dim)
         self.covMat = covMat
@@ -59,7 +59,7 @@ class MultivariateNormal():
         return w.x * np.sqrt((-2 * np.log(w.res)) / w.res)
     
     @staticmethod
-    def getSample(dim):
+    def getMVNSample(dim):
         dist = MultivariateNormal(np.zeros(dim), np.eye(dim))
         return dist.getSample()
     
@@ -72,7 +72,7 @@ class MultivariateNormal():
     def logDensity(self, x):
         diff = self.mean - x
         eqsolv =  np.linalg.solve(self.covL, diff)
-        return self.constant - np.linalg.norm(self.logDet - 0.5 * np.linalg.solve(self.covL, eqsolv))
+        return self.constant - np.linalg.norm(self.logDet - 0.5 * np.linalg.solve(self.covL.T, eqsolv))
     
     def gradLogDensity(self, x):
         diff = self.mean - x
@@ -124,7 +124,35 @@ a.gradLogDensity(1)
 ```
 
 ```{code-cell} ipython3
-print(a)
+
+```
+
+```{code-cell} ipython3
+from mpl_toolkits import mplot3d
+import matplotlib.pyplot as plt
+from scipy.stats import multivariate_normal
+x = np.linspace(-1, 3, 100)
+y = np.linspace(0, 4, 100)
+X, Y = np.meshgrid(x, y)
+pos = np.dstack((X, Y))
+mu = np.array([1, 2])
+cov = np.array([[.5, .25],[.25, .5]])
+rv = MultivariateNormal(mu, covMat = cov)
+Z = np.exp(rv.logDensity(pos))
+fig = plt.figure()
+ax = fig.add_subplot(111, projection='3d')
+ax.plot_surface(X, Y, Z)
+fig.show()
+```
+
+```{code-cell} ipython3
+z = []
+for p in pos:
+    z.append(np.exp(rv.logDensity(p)))
+```
+
+```{code-cell} ipython3
+
 ```
 
 ```{code-cell} ipython3

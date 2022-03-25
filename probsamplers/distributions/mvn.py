@@ -1,12 +1,13 @@
 import numpy as np
 from probsamplers import aux
+import scipy.stats
 
 class MultivariateNormal():
     # Static member
-    rng = np.random.default_rng(seed=1995)
+    rng = np.random.default_rng()
     def __init__(self, mu, covMat):
         self.mean = np.asarray(mu)
-        self.dim = len(self.mean)
+        self.dim = self.mean.shape[0]
         self.constant = -0.5 * np.log(2.0 * np.pi) * self.dim
         assert covMat.shape == (self.dim, self.dim)
         self.covMat = covMat
@@ -26,15 +27,12 @@ class MultivariateNormal():
         return w.x * np.sqrt((-2 * np.log(w.res)) / w.res)
     
     @staticmethod
-    def getSample(dim):
+    def getMVNSample(dim):
         dist = MultivariateNormal(np.zeros(dim), np.eye(dim))
         return dist.getSample()
     
     def getSample(self):
-        z = np.zeros(self.dim)
-        for i in range(0, len(z)):
-            z[i] = MultivariateNormal.getNormal()
-        return self.mean + (self.covL @ z)
+        return MultivariateNormal.rng.multivariate_normal(self.mean, self.covMat)
     
     def logDensity(self, x):
         diff = self.mean - x

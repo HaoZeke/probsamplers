@@ -41,7 +41,6 @@ class baseTargetDistrib(metaclass=abc.ABCMeta):
     def __init__(self, xmin, xmax):
         self.xmin = xmin
         self.xmax = xmax
-        self.rng = np.random.default_rng()
     @classmethod
     def __subclasshook__(cls, subclass):
         return (hasattr(subclass, 'logDensity') and
@@ -128,8 +127,20 @@ np.exp(a.logDensity([1,3]))
 
 ```{code-cell} ipython3
 res=a.plotDensity(xlim={"low": -8, "high": 10},
-                    ylim = {"low": -15, "high": 4})
+                    ylim = {"low": -15, "high": 4}, nstep=300)
 plt.contour(res.xx, res.yy, res.zz)
+```
+
+```{code-cell} ipython3
+a_z = np.zeros([4,6])
+```
+
+```{code-cell} ipython3
+len(a_z)
+```
+
+```{code-cell} ipython3
+a_z.shape[0]
 ```
 
 ```{code-cell} ipython3
