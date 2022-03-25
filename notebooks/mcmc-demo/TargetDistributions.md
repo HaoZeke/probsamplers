@@ -18,6 +18,13 @@ kernelspec:
 import abc
 import numpy as np
 import scipy
+from collections import namedtuple
+```
+
+```{code-cell} ipython3
+%matplotlib inline
+import numpy as np
+import matplotlib.pyplot as plt
 ```
 
 ## Internal dependencies
@@ -52,18 +59,22 @@ class baseTargetDistrib(metaclass=abc.ABCMeta):
         """Returns the gradient of the probability density"""
         raise NotImplementedError
     
-    def computeMean(self, chain):
-        """Computes the chain mean"""
-        return np.mean(chain) # TODO: figure this out
+    @abc.abstractmethod
+    def gradLogDensity(self, x):
+        """Returns the gradient of the probability density"""
+        raise NotImplementedError
         
-    def computeAutocorrelation(self, chain, lag):
-        """Get the autocorrelation"""
-        mean = self.computeMean(chain)
-        autocov = np.zeros([lag, 1])
-        for k in range(0, lag+1):
-            for i in range(k, len(chain)):
-                autocov[k] += np.dot((chain[i] - mean), (chain[i-k] - mean))
-        return (autocov / autocov[0])
+    def plotDensity(self, xlim = {"low": -1.5, "high": 1.5},
+                    ylim = {"low": -1.5, "high": 1.5}, nstep = 200):
+        plotvals = namedtuple("plotvals", ['xx', 'yy', 'zz'])
+        x = np.linspace(xlim['low'], xlim['high'], nstep)
+        y = np.linspace(ylim['low'], ylim['high'], nstep)
+        xx, yy = np.meshgrid(x,y)
+        zz = np.zeros((nstep, nstep))
+        for i in np.arange(0, nstep):
+            for j in np.arange(0, nstep):
+                zz[i, j] = np.exp(self.logDensity([xx[i, j], yy[i, j]]))
+        return plotvals(xx = xx, yy = yy, zz = zz)
 ```
 
 +++ {"tags": []}
@@ -85,7 +96,7 @@ class rosenbrockBanana(baseTargetDistrib):
         super().__init__(xmin, xmax)
         self.alpha = alpha
         self.beta = beta
-        self.pdistrib = scipy.stats.multivariate_normal(mu, cov)
+        self.pdistrib = pbsd.mvn.MultivariateNormal(mu, cov)
         
     def getYvec(self, x):
         assert len(x) == 2
@@ -96,11 +107,11 @@ class rosenbrockBanana(baseTargetDistrib):
 
     def logDensity(self, x):
         """ Return the log probability of the Banana function """
-        return self.pdistrib.logpdf(self.getYvec(x))
+        return self.pdistrib.logDensity(self.getYvec(x))
     
     def gradLogDensity(self, x):
         y = self.getYvec(x) # Uses x[1]
-        grad = self.gradLogDensity(y)
+        grad = self.pdistrib.gradLogDensity(y)
         gradx0 = grad[0] / self.alpha + grad[1] * self.alpha * self.beta * 2 * x[0]
         gradx1 = grad[1] * self.alpha
         return np.array([gradx0, gradx1])
@@ -112,31 +123,13 @@ a = rosenbrockBanana()
 ```
 
 ```{code-cell} ipython3
-a.gradLogDensity([1,2])
+np.exp(a.logDensity([1,3]))
 ```
 
 ```{code-cell} ipython3
-rng.multivariate_normal([0,4], np.array([1, 0.5, 0.5, 1]).reshape(2,2))
-```
-
-```{code-cell} ipython3
-scipy.stats.multivariate_normal([0,4], np.array([1, 0.5, 0.5, 1]).reshape(2,2)).rvs()
-```
-
-```{code-cell} ipython3
-
-```
-
-```{code-cell} ipython3
-import probsamplers.distributions as pbs
-```
-
-```{code-cell} ipython3
-dir(pbs)
-```
-
-```{code-cell} ipython3
-pbs.mvn.MultivariateNormal()
+res=a.plotDensity(xlim={"low": -8, "high": 10},
+                    ylim = {"low": -15, "high": 4})
+plt.contour(res.xx, res.yy, res.zz)
 ```
 
 ```{code-cell} ipython3

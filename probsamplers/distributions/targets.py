@@ -1,0 +1,77 @@
+# Common
+import abc
+import numpy as np
+import scipy
+from collections import namedtuple
+
+# Internal libraries
+import probsamplers.distributions as pbsd
+
+class baseTargetDistrib(metaclass=abc.ABCMeta):
+    def __init__(self, xmin, xmax):
+        self.xmin = xmin
+        self.xmax = xmax
+        self.rng = np.random.default_rng()
+    @classmethod
+    def __subclasshook__(cls, subclass):
+        return (hasattr(subclass, 'logDensity') and
+                callable(subclass.logDensity) and
+                hasattr(subclass, 'gradLogDensity') and
+                callable(subclass.gradLogDensity) or
+                NotImplemented)
+    
+    @abc.abstractmethod
+    def logDensity(self, x):
+        """Return the log of the probability density"""
+        raise NotImplementedError
+    
+    @abc.abstractmethod
+    def gradLogDensity(self, x):
+        """Returns the gradient of the probability density"""
+        raise NotImplementedError
+    
+    @abc.abstractmethod
+    def gradLogDensity(self, x):
+        """Returns the gradient of the probability density"""
+        raise NotImplementedError
+        
+    def plotDensity(self, xlim = {"low": -1.5, "high": 1.5},
+                    ylim = {"low": -1.5, "high": 1.5}, nstep = 200):
+        plotvals = namedtuple("plotvals", ['xx', 'yy', 'zz'])
+        x = np.linspace(xlim['low'], xlim['high'], nstep)
+        y = np.linspace(ylim['low'], ylim['high'], nstep)
+        xx, yy = np.meshgrid(x,y)
+        zz = np.zeros((nstep, nstep))
+        for i in np.arange(0, nstep):
+            for j in np.arange(0, nstep):
+                zz[i, j] = np.exp(self.logDensity([xx[i, j], yy[i, j]]))
+        return plotvals(xx = xx, yy = yy, zz = zz)
+    
+class rosenbrockBanana(baseTargetDistrib):
+    def __init__(self, xmin = -6, xmax = 6,
+                 alpha=2, beta=0.2,
+                mu = np.array([0, 4]),
+                 cov = np.array([1, 0.5, 0.5, 1]).reshape(2, 2)
+                ):
+        super().__init__(xmin, xmax)
+        self.alpha = alpha
+        self.beta = beta
+        self.pdistrib = pbsd.mvn.MultivariateNormal(mu, cov)
+        
+    def getYvec(self, x):
+        assert len(x) == 2
+        yvec = np.zeros(2)
+        yvec[0] = x[0] / self.alpha
+        yvec[1] = x[1] * self.alpha + self.alpha * self.beta * (x[0]**2 + self.alpha**2)
+        return yvec
+
+    def logDensity(self, x):
+        """ Return the log probability of the Banana function """
+        return self.pdistrib.logDensity(self.getYvec(x))
+    
+    def gradLogDensity(self, x):
+        y = self.getYvec(x) # Uses x[1]
+        grad = self.pdistrib.gradLogDensity(y)
+        gradx0 = grad[0] / self.alpha + grad[1] * self.alpha * self.beta * 2 * x[0]
+        gradx1 = grad[1] * self.alpha
+        return np.array([gradx0, gradx1])
