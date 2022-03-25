@@ -18,6 +18,7 @@ kernelspec:
 
 ```{code-cell} ipython3
 import abc
+import copy
 import numpy as np
 import scipy.stats
 from collections import namedtuple
@@ -89,13 +90,14 @@ class RandomWalkMetropolisHastingsMC(baseChains):
     def reset(self):
         self.chain = [pbsd.mvn.MultivariateNormal.getMVNSample(self.dim)]
         self.stepNum = 0
+        self.traj = []
         
     def step(self):
         isaccept = None
         proposalDist = pbsd.mvn.MultivariateNormal(self.chain[-1], np.eye(self.dim) * self.sigma**2)
         proposal = proposalDist.getSample()
         logAcceptRatio = self.targetDist.logDensity(proposal)  - self.targetDist.logDensity(self.chain[-1])
-        if (np.random.default_rng().standard_normal() < np.exp(logAcceptRatio)):
+        if (np.random.default_rng().uniform() < np.exp(logAcceptRatio)):
             self.chain.append(proposal)
             isaccept = True
         else:
@@ -103,7 +105,7 @@ class RandomWalkMetropolisHastingsMC(baseChains):
             isaccept = False
         self.traj.append(aux.structs.mcmcData(step = self.stepNum,
                             acceptance = isaccept,
-                            proposal = proposal,
+                            proposal = copy.deepcopy(proposal),
                             proposalDistCovariance = proposalDist.covMat))
         self.stepNum += 1
         
@@ -118,29 +120,126 @@ mhSampler = RandomWalkMetropolisHastingsMC(targetDist = banana, dimensionsLike =
 ```
 
 ```{code-cell} ipython3
-while (mhSampler.stepNum < 100000):
+while (mhSampler.stepNum < 1000):
     mhSampler.step()
 ```
 
 ```{code-cell} ipython3
-scipy.stats.multivariate_normal([0.1, 0.2, 0.3], np.array([2, -1, 0, -1, 2, -1, 0, -1, 2]).reshape(3,3)).logpdf(1)
-```
-
-```{code-cell} ipython3
-paccept=pd.DataFrame([(x.proposal[0], x.proposal[1]) for x in mhSampler.traj[3000:-1] if x.acceptance])
+paccept=pd.DataFrame([(x.proposal[0], x.proposal[1]) for x in mhSampler.traj[500:-1] if x.acceptance])
 paccept.columns=["x", "y"]
 ```
 
 ```{code-cell} ipython3
-prej=pd.DataFrame([(x.proposal[0], x.proposal[1]) for x in mhSampler.traj[3000:-1] if not x.acceptance])
+prej=pd.DataFrame([(x.proposal[0], x.proposal[1]) for x in mhSampler.traj[500:-1] if not x.acceptance])
 prej.columns=["x", "y"]
 ```
 
 ```{code-cell} ipython3
-#res = banana.plotDensity(xlim={"low": -8, "high": 10},
-#                   ylim = {"low": -15, "high": 4})
+res = banana.plotDensity(xlim={"low": -8, "high": 10},
+                   ylim = {"low": -15, "high": 4})
 plt.figure()
-#plt.contour(res.xx, res.yy, res.zz)
+plt.contour(res.xx, res.yy, res.zz)
+plt.plot(prej.x, prej.y, 'ro')
+plt.plot(paccept.x, paccept.y, 'bo')
+```
+
+# Hamiltonian Monte Carlo
+
+```{code-cell} ipython3
+class HamiltonianMC(baseChains):
+    def __init__(self, dimensionsLike, targetDist, leapfrogSteps = 37, dt = 0.1):
+        super().__init__()
+        self.leapfrogSteps = 37
+        self.dt = 0.1
+        self.dim = dimensionsLike.shape[0] # np.zeros(dim)
+        self.targetDist = targetDist
+        self.stepNum = 0
+        self.petmvn = pbsd.mvn.MultivariateNormal(np.zeros(2), np.eye(2))
+        self.chain = [self.petmvn.getSample()]
+        self.traj = []
+        
+    def reset(self):
+        self.petmvn = pbsd.mvn.MultivariateNormal(np.zeros(2), np.eye(2))
+        self.chain = [self.petmvn.getSample()]
+        self.stepNum = 0
+        self.traj = []
+        
+    def step(self):
+        isaccept = None        
+        q0 = self.chain[-1]
+        p0 = pbsd.mvn.MultivariateNormal.getMVNSample(self.dim)
+        if self.stepNum == 0:
+            self.traj.append(aux.structs.mcmcData(step = self.stepNum,
+                                             acceptance = True, 
+                                             proposal = q0,
+                                             proposalDistCovariance = None))
+            self.stepNum += 1
+            return
+        # Otherwise..
+        p = p0
+        q = q0
+        # Leapfrog
+        # Half step
+        p -= self.targetDist.gradLogDensity(q)*self.dt/2.0
+        # Full steps for position and momentum
+        for istep in range(self.leapfrogSteps):
+            q += p * self.dt
+            if (istep != self.leapfrogSteps-1):
+                p -= self.targetDist.gradLogDensity(q)*self.dt
+        # Half step
+        p -= self.targetDist.gradLogDensity(q)*self.dt/2.0
+        
+        # Acceptance ratio
+        H0 = self.targetDist.logDensity(q0) + self.targetDist.logDensity(p0)
+        H = self.targetDist.logDensity(q) + self.targetDist.logDensity(p)
+        logAcceptRatio = H - H0
+        # Determine outcome
+        if (np.random.default_rng().standard_normal() < np.exp(logAcceptRatio)):
+            self.chain.append(q)
+            isaccept = True
+        else:
+            self.chain.append(q0)
+            isaccept = False
+        self.traj.append(aux.structs.mcmcData(step = self.stepNum,
+                            acceptance = isaccept,
+                            proposal = copy.deepcopy(q),
+                            proposalDistCovariance = None))
+        self.stepNum += 1        
+```
+
+```{code-cell} ipython3
+banana = pbsd.targets.rosenbrockBanana()
+```
+
+```{code-cell} ipython3
+hmcSampler = HamiltonianMC(targetDist = banana, dimensionsLike = np.zeros(2))
+```
+
+```{code-cell} ipython3
+hmcSampler.step()
+hmcSampler.traj
+```
+
+```{code-cell} ipython3
+while (hmcSampler.stepNum < 400):
+    hmcSampler.step()
+```
+
+```{code-cell} ipython3
+paccept=pd.DataFrame([(x.proposal[0], x.proposal[1]) for x in hmcSampler.traj[300:-1] if x.acceptance])
+paccept.columns=["x", "y"]
+```
+
+```{code-cell} ipython3
+prej=pd.DataFrame([(x.proposal[0], x.proposal[1]) for x in hmcSampler.traj[300:-1] if not x.acceptance])
+prej.columns=["x", "y"]
+```
+
+```{code-cell} ipython3
+res = banana.plotDensity(xlim={"low": -8, "high": 10},
+                   ylim = {"low": -15, "high": 4})
+plt.figure()
+plt.contour(res.xx, res.yy, res.zz)
 plt.plot(prej.x, prej.y, 'ro')
 plt.plot(paccept.x, paccept.y, 'bo')
 ```
