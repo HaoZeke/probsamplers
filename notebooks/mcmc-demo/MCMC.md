@@ -98,14 +98,12 @@ class baseChains(metaclass=abc.ABCMeta):
         """Computes the chain mean"""
         return np.mean(chain) # TODO: figure this out
         
-    def computeAutocorrelation(self, chain, lag):
+    def computeAutocorrelation(self, lagRange=201):
         """Get the autocorrelation"""
-        mean = self.computeMean(chain)
-        autocov = np.zeros([lag, 1])
-        for k in range(0, lag+1):
-            for i in range(k, len(chain)):
-                autocov[k] += np.dot((chain[i] - mean), (chain[i-k] - mean))
-        return (autocov / autocov[0])
+        def acf(x, lagRange):
+            return np.array([1]+[np.corrcoef(x[:-i], x[i:])[0,1]  for i in range(1, lagRange)])
+        dat = self.extractAllXY()
+        return (acf(dat.x, lagRange), acf(dat.y, lagRange))
     
     @functools.cached_property
     def extractDensity(self, xlim={"low": -8, "high": 10},
@@ -156,6 +154,18 @@ class baseChains(metaclass=abc.ABCMeta):
         plt.ylabel('Trace')
         plt.xlim([0, self.stepNum-burnin]);
         return fig
+    
+    def plotAutocorrelations(self, lagRange=301, title = ""):
+        acx, acy = self.computeAutocorrelation(lagRange)
+        fig = plt.figure()
+        kplot = np.arange(lagRange)
+        plt.plot(kplot[1:], acx[1:], label=r'$x$')
+        plt.plot(kplot[1:], acy[1:], label=r'$y$')
+        plt.legend()
+        plt.title(title + '- Samples')
+        plt.xlabel('X')
+        plt.ylabel('Y')
+        return fig
 ```
 
 # Random Walk Monte Carlo
@@ -204,6 +214,10 @@ mhSampler = RandomWalkMetropolisHastingsMC(targetDist = banana, dimensionsLike =
 ```{code-cell} ipython3
 while (mhSampler.stepNum < 1000):
     mhSampler.step()
+```
+
+```{code-cell} ipython3
+fig = mhSampler.plotAutocorrelations(title="Metropolis Hastings")
 ```
 
 ```{code-cell} ipython3
@@ -297,12 +311,16 @@ while (hmcSampler.stepNum < 600):
 
 ```{code-cell} ipython3
 fig = hmcSampler.plotTargetSamples()
-#fig.show()
+#fig.show()fig = hmcSampler.plotTargetSamples()
 ```
 
 ```{code-cell} ipython3
 fig = hmcSampler.plotTrace()
 # fig.show()
+```
+
+```{code-cell} ipython3
+fig = hmcSampler.plotAutocorrelations(lagRange=40)
 ```
 
 ```{code-cell} ipython3
