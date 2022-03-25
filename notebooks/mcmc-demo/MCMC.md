@@ -20,10 +20,12 @@ kernelspec:
 import abc
 import copy
 import functools
+import logging
 import numpy as np
 import scipy.stats
 from collections import namedtuple
 import pandas as pd
+from codetiming import Timer
 ```
 
 ```{code-cell} ipython3
@@ -40,14 +42,16 @@ from probsamplers import aux
 ```
 
 # MCMC Base Class
+We need an abstract base class where the methods can be defined for plotting and also to extract relevant information.
 
 ```{code-cell} ipython3
 class baseChains(metaclass=abc.ABCMeta):      
     def __init__(self, targetDist):
         self.stepNum = 0
         self.targetDist = targetDist
+        self.clock = Timer("steps", text="Time spent: {:.8f}", logger=logging.info)
         self.tryplot()
-        
+
     @classmethod
     def __subclasshook__(cls, subclass):
         return (hasattr(subclass, 'reset') and
@@ -184,6 +188,7 @@ class RandomWalkMetropolisHastingsMC(baseChains):
         self.stepNum = 0
         self.traj = []
         
+    @Timer(name="Metropolis-Hastings Steps", logger=None)
     def step(self):
         isaccept = None
         proposalDist = pbsd.mvn.MultivariateNormal(self.chain[-1], np.eye(self.dim) * self.sigma**2)
@@ -217,6 +222,10 @@ while (mhSampler.stepNum < 1000):
 ```
 
 ```{code-cell} ipython3
+mhSampler.clock.timers
+```
+
+```{code-cell} ipython3
 fig = mhSampler.plotAutocorrelations(title="Metropolis Hastings")
 ```
 
@@ -236,11 +245,10 @@ fig = mhSampler.plotTrace(title="Metropolis-Hastings")
 class HamiltonianMC(baseChains):
     def __init__(self, dimensionsLike, targetDist, leapfrogSteps = 37, dt = 0.1):
         super().__init__(targetDist = targetDist)
-        self.leapfrogSteps = 37
-        self.dt = 0.1
+        self.leapfrogSteps = leapfrogSteps
+        self.dt = dt
         self.dim = dimensionsLike.shape[0] # np.zeros(dim)
         self.targetDist = targetDist
-        self.stepNum = 0
         self.petmvn = pbsd.mvn.MultivariateNormal(np.zeros(2), np.eye(2))
         self.chain = [self.petmvn.getSample()]
         self.traj = []
@@ -251,6 +259,7 @@ class HamiltonianMC(baseChains):
         self.stepNum = 0
         self.traj = []
         
+    @Timer(name="HMC Steps", logger=None)    
     def step(self):
         isaccept = None        
         currentPositions = self.chain[-1]
@@ -266,15 +275,16 @@ class HamiltonianMC(baseChains):
         propMomenta = currentMomenta
         propPositions = currentPositions
         # Leapfrog
-        # Half step
-        propMomenta -= self.targetDist.gradLogDensity(propPositions)*self.dt/2.0
         # Full steps for position and momentum
-        for istep in range(self.leapfrogSteps):
-            propPositions += propMomenta * self.dt
-            if (istep != self.leapfrogSteps-1):
-                propMomenta -= self.targetDist.gradLogDensity(propPositions)*self.dt
-        # Half step
-        propMomenta -= self.targetDist.gradLogDensity(propPositions)*self.dt/2.0
+        with Timer(name="HMC LeapFrog", logger=None):
+            # Half step
+            propMomenta -= self.targetDist.gradLogDensity(propPositions)*self.dt/2.0
+            for istep in range(self.leapfrogSteps):
+                propPositions += propMomenta * self.dt
+                if (istep != self.leapfrogSteps-1):
+                    propMomenta -= self.targetDist.gradLogDensity(propPositions)*self.dt
+            # Half step
+            propMomenta -= self.targetDist.gradLogDensity(propPositions)*self.dt/2.0
         
         # Acceptance ratio
         currentHamiltonian = self.targetDist.logDensity(currentPositions) + self.targetDist.logDensity(currentMomenta)
@@ -320,11 +330,192 @@ fig = hmcSampler.plotTrace()
 ```
 
 ```{code-cell} ipython3
-fig = hmcSampler.plotAutocorrelations(lagRange=40)
+fig = hmcSampler.plotAutocorrelations(lagRange=40, title="Hamiltonian Monte Carlo")
 ```
 
 ```{code-cell} ipython3
+hmcSampler.clock.timers
+```
 
+# HMC-NUTS
+
+```{code-cell} ipython3
+class hmcNUTS(baseChains):
+    def __init__(self, dimensionsLike, targetDist, dt = 0.1, deltaMax = 1):
+        super().__init__(targetDist = targetDist)
+        self.deltaMax = deltaMax
+        self.leapfrogSteps = 37
+        self.dt = dt
+        self.dim = dimensionsLike.shape[0] # np.zeros(dim)
+        self.targetDist = targetDist
+        self.petmvn = pbsd.mvn.MultivariateNormal(np.zeros(2), np.eye(2))
+        self.chain = [self.petmvn.getSample()]
+        self.traj = []
+        
+    def reset(self):
+        self.petmvn = pbsd.mvn.MultivariateNormal(np.zeros(2), np.eye(2))
+        self.chain = [self.petmvn.getSample()]
+        self.stepNum = 0
+        self.traj = []
+        
+   # @Timer(name="HMC-NUTS TreeBuilding", logger=None)           
+    def buildTree(self, positions, momenta, cutoff, direction, j):        
+        currentPositions = self.chain[-1]
+        currentMomenta = pbsd.mvn.MultivariateNormal.getMVNSample(self.dim)
+        propMomenta = currentMomenta
+        propPositions = currentPositions
+        if (j==0):
+            # Leapfrog
+            # Full steps for position and momentum
+            # Half step
+            propMomenta -= self.targetDist.gradLogDensity(propPositions)*self.dt/2.0
+            for istep in range(self.leapfrogSteps):
+                propPositions += propMomenta * self.dt
+                if (istep != self.leapfrogSteps-1):
+                    propMomenta -= self.targetDist.gradLogDensity(propPositions)*self.dt
+            # Half step
+            propMomenta -= self.targetDist.gradLogDensity(propPositions)*self.dt/2.0
+            # Decider
+            tmp_n = np.exp(self.targetDist.gradLogDensity(currentPositions) * (direction*self.dt)/2.)
+            n_ = 1 if np.any(cutoff < tmp_n) else 0
+            tmp_s = cutoff < np.exp(self.deltaMax + self.targetDist.logDensity(currentPositions) - np.linalg.norm(propMomenta))
+            s_ = 1 if np.any(cutoff < tmp_s)  else 0
+            if n_:
+                return ({'q_p': propPositions,
+                                  'p_p': propMomenta,
+                                  'q_m': propPositions,
+                                  'p_m': propMomenta,
+                                  'q_': propPositions,
+                                  'n_': n_,
+                                  's_': s_})
+        else:
+            result = self.buildTree(propPositions, propMomenta, cutoff, direction, j-1)
+            q_m = result.get("q_m")
+            p_m = result.get("p_m")
+            p_p = result.get("p_p")
+            q_p = result.get("q_p")
+            q_ = result.get("q_")
+            n_ = result.get("n_")
+            s_ = result.get("s_")
+            if s_==1:
+                if (direction==-1):
+                    result = self.buildTree(q_m, p_m, cutoff, direction, j-1)
+                    q_m = result.get("q_m")
+                    p_m = result.get("p_m")
+                    q__ = result.get("q_")
+                    n__ = result.get("n_")
+                    s__ = result.get("s_")
+                else:
+                    result = self.buildTree(q_p, p_p, cutoff, direction, j-1)
+                    q_p = result.get("q_p")
+                    p_p = result.get("p_p")
+                    q__ = result.get("q_")
+                    n__ = result.get("n_")
+                    s__ = result.get("s_")
+                if (np.random.default_rng().uniform() < n__ / (n_ + n__)):
+                    q_ = q__
+                s_ = s_ * s__ * (1 if np.dot((q_p - q_m), p_m) >=0 else 0) * (1 if np.dot((q_p - q_m), p_p) >= 0 else 0)
+                n_ = n_ + n__
+                if n_:
+                    isaccept = True
+                else:
+                    isaccept = False
+                self.traj.append(aux.structs.mcmcData(step = self.stepNum, acceptance = True, proposal = copy.deepcopy(currentPositions), proposalDistCovariance = None))
+            blah = {'q_p': q_p,
+                     'p_p': p_p,
+                     'q_m': q_m,
+                     'p_m': p_m,
+                     'q_': q_,
+                     'n_': n_,
+                     's_': s_}
+            return blah
+           
+            
+    @Timer(name="HMC-NUTS Steps", logger=None)    
+    def step(self):
+        isaccept = None
+        p0 = pbsd.mvn.MultivariateNormal.getMVNSample(self.dim)
+        u = np.random.default_rng().uniform() * np.exp(self.targetDist.logDensity(self.chain[-1])) - np.linalg.norm(p0) * 0.5
+        q = copy.deepcopy(self.chain[-1])
+        q_m = copy.deepcopy(self.chain[-1])
+        q_p = copy.deepcopy(self.chain[-1])
+        p_m = copy.deepcopy(p0)
+        p_p = copy.deepcopy(p0)
+        j = 0
+        n = 1
+        s = 1
+        
+        while (s==1):
+            v = -1 * np.random.default_rng().uniform() - 0.5
+            if (v == -1):
+                result = self.buildTree(q_m, p_m, u, v, j)
+                q_m = result.get("q_m")
+                p_m = result.get("p_m")
+                q_ = result.get("q_")
+                n_ = result.get("n_")
+                s_ = result.get("s_")
+            else:
+                result = self.buildTree(q_m, p_m, u, v, j)
+                q_p = result.get("q_p")
+                p_p = result.get("p_p")
+                q_ = result.get("q_")
+                n_ = result.get("n_")
+                s_ = result.get("s_")
+            if (s_ == 1 and np.random.default_rng().uniform() < n_ / n):
+                q = copy.deepcopy(q_)
+            s = s_ * (1 if np.dot((q_p - q_m), p_m) >=0 else 0) * (1 if np.dot((q_p - q_m), p_p) >= 0 else 0)
+            n = n + n_
+            j = j+1
+            
+            isaccept = True
+            self.traj.append(aux.structs.mcmcData(step = self.stepNum, acceptance = True, proposal = copy.deepcopy(q), proposalDistCovariance = None))
+            self.stepNum += 1
+        
+            
+    def plotTargetSamples(self, xlim={"low": -8, "high": 10},
+                       ylim = {"low": -15, "high": 4}):
+        """Efficient enough to never fail"""
+        paccepted = self.extractXYSamples(accepted=True)
+        res = self.extractDensity(xlim = xlim, ylim = ylim)
+        fig = plt.figure()
+        plt.contour(res.xx, res.yy, res.zz)
+        plt.plot(paccepted.x, paccepted.y, 'bo', alpha = 0.5, label = r'accepted')
+        plt.legend()
+        plt.title("Efficient HMC" + '- Samples')
+        plt.xlabel('X')
+        plt.ylabel('Y')
+        return fig
+```
+
+```{code-cell} ipython3
+hmcSamplerNUTS = hmcNUTS(targetDist =  pbsd.targets.rosenbrockBanana(),
+                           dimensionsLike = np.zeros(2))
+```
+
+```{code-cell} ipython3
+hmcSamplerNUTS.step()
+hmcSamplerNUTS.traj
+```
+
+```{code-cell} ipython3
+while (hmcSamplerNUTS.stepNum < 6000):
+    hmcSamplerNUTS.step()
+```
+
+```{code-cell} ipython3
+fig = hmcSamplerNUTS.plotTrace()
+```
+
+```{code-cell} ipython3
+fig = hmcSamplerNUTS.plotTargetSamples()
+```
+
+```{code-cell} ipython3
+fig = hmcSamplerNUTS.plotAutocorrelations()
+```
+
+```{code-cell} ipython3
+hmcSamplerNUTS.clock.timers
 ```
 
 ```{code-cell} ipython3
