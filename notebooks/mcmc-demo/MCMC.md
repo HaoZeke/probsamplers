@@ -19,6 +19,7 @@ kernelspec:
 ```{code-cell} ipython3
 import abc
 import copy
+import functools
 import numpy as np
 import scipy.stats
 from collections import namedtuple
@@ -41,7 +42,11 @@ from probsamplers import aux
 # MCMC Base Class
 
 ```{code-cell} ipython3
-class baseChains(metaclass=abc.ABCMeta):        
+class baseChains(metaclass=abc.ABCMeta):      
+    def __init__(self, targetDist):
+        self.stepNum = 0
+        self.targetDist = targetDist
+        
     @classmethod
     def __subclasshook__(cls, subclass):
         return (hasattr(subclass, 'reset') and
@@ -72,6 +77,32 @@ class baseChains(metaclass=abc.ABCMeta):
             for i in range(k, len(chain)):
                 autocov[k] += np.dot((chain[i] - mean), (chain[i-k] - mean))
         return (autocov / autocov[0])
+    
+    @functools.cached_property
+    def plotDensity(self, xlim={"low": -8, "high": 10},
+                   ylim = {"low": -15, "high": 4}):
+        return self.targetDist.plotDensity
+    
+    def extractXYSamples(self, accepted=True, burnin=500):
+        assert self.stepNum > burnin, f"Step must be greater than {burnin}"
+        assert self.dim == 2, f"Samples only for dim == 2, got {self.dim}"
+        if accepted==True:
+            dat = pd.DataFrame([(x.proposal[0], x.proposal[1]) for x in self.traj[burnin:-1] if x.acceptance])
+        else:
+            dat = pd.DataFrame([(x.proposal[0], x.proposal[1]) for x in self.traj[burnin:-1] if not x.acceptance])
+        dat.columns=["x", "y"]
+        return dat
+    
+    def plotTargetSamples(self, xlim={"low": -8, "high": 10},
+                   ylim = {"low": -15, "high": 4}):
+        paccepted = self.extractXYSamples(accepted=True)
+        prejected = self.extractXYSamples(accepted=False)
+        res = self.plotDensity(xlim = xlim, ylim = ylim)
+        fig = plt.figure()
+        plt.contour(res.xx, res.yy, res.zz)
+        plt.plot(prejected.x, prejected.y, 'ro')
+        plt.plot(paccepted.x, paccepted.y, 'bo')
+        return fig    
 ```
 
 # Random Walk Monte Carlo
@@ -79,11 +110,9 @@ class baseChains(metaclass=abc.ABCMeta):
 ```{code-cell} ipython3
 class RandomWalkMetropolisHastingsMC(baseChains):
     def __init__(self, dimensionsLike, targetDist, sigma = 1,):
-        super().__init__()
+        super().__init__(targetDist = targetDist)
         self.sigma = sigma
         self.dim = dimensionsLike.shape[0] # np.zeros(dim)
-        self.targetDist = targetDist
-        self.stepNum = 0
         self.chain = [pbsd.mvn.MultivariateNormal.getMVNSample(self.dim)]
         self.traj = []
         
@@ -125,22 +154,8 @@ while (mhSampler.stepNum < 1000):
 ```
 
 ```{code-cell} ipython3
-paccept=pd.DataFrame([(x.proposal[0], x.proposal[1]) for x in mhSampler.traj[500:-1] if x.acceptance])
-paccept.columns=["x", "y"]
-```
-
-```{code-cell} ipython3
-prej=pd.DataFrame([(x.proposal[0], x.proposal[1]) for x in mhSampler.traj[500:-1] if not x.acceptance])
-prej.columns=["x", "y"]
-```
-
-```{code-cell} ipython3
-res = banana.plotDensity(xlim={"low": -8, "high": 10},
-                   ylim = {"low": -15, "high": 4})
-plt.figure()
-plt.contour(res.xx, res.yy, res.zz)
-plt.plot(prej.x, prej.y, 'ro')
-plt.plot(paccept.x, paccept.y, 'bo')
+fig = mhSampler.plotTargetSamples()
+fig.show()
 ```
 
 # Hamiltonian Monte Carlo
@@ -148,7 +163,7 @@ plt.plot(paccept.x, paccept.y, 'bo')
 ```{code-cell} ipython3
 class HamiltonianMC(baseChains):
     def __init__(self, dimensionsLike, targetDist, leapfrogSteps = 37, dt = 0.1):
-        super().__init__()
+        super().__init__(targetDist = targetDist)
         self.leapfrogSteps = 37
         self.dt = 0.1
         self.dim = dimensionsLike.shape[0] # np.zeros(dim)
@@ -166,53 +181,50 @@ class HamiltonianMC(baseChains):
         
     def step(self):
         isaccept = None        
-        q0 = self.chain[-1]
-        p0 = pbsd.mvn.MultivariateNormal.getMVNSample(self.dim)
+        currentPositions = self.chain[-1]
+        currentMomenta = pbsd.mvn.MultivariateNormal.getMVNSample(self.dim)
         if self.stepNum == 0:
             self.traj.append(aux.structs.mcmcData(step = self.stepNum,
                                              acceptance = True, 
-                                             proposal = q0,
+                                             proposal = currentPositions,
                                              proposalDistCovariance = None))
             self.stepNum += 1
             return
         # Otherwise..
-        p = p0
-        q = q0
+        propMomenta = currentMomenta
+        propPositions = currentPositions
         # Leapfrog
         # Half step
-        p -= self.targetDist.gradLogDensity(q)*self.dt/2.0
+        propMomenta -= self.targetDist.gradLogDensity(propPositions)*self.dt/2.0
         # Full steps for position and momentum
         for istep in range(self.leapfrogSteps):
-            q += p * self.dt
+            propPositions += propMomenta * self.dt
             if (istep != self.leapfrogSteps-1):
-                p -= self.targetDist.gradLogDensity(q)*self.dt
+                propMomenta -= self.targetDist.gradLogDensity(propPositions)*self.dt
         # Half step
-        p -= self.targetDist.gradLogDensity(q)*self.dt/2.0
+        propMomenta -= self.targetDist.gradLogDensity(propPositions)*self.dt/2.0
         
         # Acceptance ratio
-        H0 = self.targetDist.logDensity(q0) + self.targetDist.logDensity(p0)
-        H = self.targetDist.logDensity(q) + self.targetDist.logDensity(p)
-        logAcceptRatio = H - H0
+        currentHamiltonian = self.targetDist.logDensity(currentPositions) + self.targetDist.logDensity(currentMomenta)
+        propHamiltonian = self.targetDist.logDensity(propPositions) + self.targetDist.logDensity(propMomenta)
+        logAcceptRatio = propHamiltonian - currentHamiltonian
         # Determine outcome
         if (np.random.default_rng().standard_normal() < np.exp(logAcceptRatio)):
-            self.chain.append(q)
+            self.chain.append(propPositions)
             isaccept = True
         else:
-            self.chain.append(q0)
+            self.chain.append(currentPositions)
             isaccept = False
         self.traj.append(aux.structs.mcmcData(step = self.stepNum,
                             acceptance = isaccept,
-                            proposal = copy.deepcopy(q),
+                            proposal = copy.deepcopy(propPositions),
                             proposalDistCovariance = None))
         self.stepNum += 1        
 ```
 
 ```{code-cell} ipython3
-banana = pbsd.targets.rosenbrockBanana()
-```
-
-```{code-cell} ipython3
-hmcSampler = HamiltonianMC(targetDist = banana, dimensionsLike = np.zeros(2))
+hmcSampler = HamiltonianMC(targetDist =  pbsd.targets.rosenbrockBanana(),
+                           dimensionsLike = np.zeros(2))
 ```
 
 ```{code-cell} ipython3
@@ -221,27 +233,13 @@ hmcSampler.traj
 ```
 
 ```{code-cell} ipython3
-while (hmcSampler.stepNum < 400):
+while (hmcSampler.stepNum < 600):
     hmcSampler.step()
 ```
 
 ```{code-cell} ipython3
-paccept=pd.DataFrame([(x.proposal[0], x.proposal[1]) for x in hmcSampler.traj[300:-1] if x.acceptance])
-paccept.columns=["x", "y"]
-```
-
-```{code-cell} ipython3
-prej=pd.DataFrame([(x.proposal[0], x.proposal[1]) for x in hmcSampler.traj[300:-1] if not x.acceptance])
-prej.columns=["x", "y"]
-```
-
-```{code-cell} ipython3
-res = banana.plotDensity(xlim={"low": -8, "high": 10},
-                   ylim = {"low": -15, "high": 4})
-plt.figure()
-plt.contour(res.xx, res.yy, res.zz)
-plt.plot(prej.x, prej.y, 'ro')
-plt.plot(paccept.x, paccept.y, 'bo')
+fig = hmcSampler.plotTargetSamples()
+fig.show()
 ```
 
 ```{code-cell} ipython3
