@@ -131,16 +131,33 @@ res=a.plotDensity(xlim={"low": -8, "high": 10},
 plt.contour(res.xx, res.yy, res.zz)
 ```
 
+# Donut Distributon
+
 ```{code-cell} ipython3
-a_z = np.zeros([4,6])
+class donutDistrib(baseTargetDistrib):
+    def __init__(self, xmin = -6, xmax = 6,
+                 radius=2.6, sigma2=0.033):
+        super().__init__(xmin, xmax)
+        self.radius = radius
+        self.sigma2 = sigma2
+        
+    def logDensity(self, x):
+        rval = np.linalg.norm(x)
+        return -1 * np.power(rval - self.radius, 2) / self.sigma2
+    
+    def gradLogDensity(self, x):
+        rval = np.linalg.norm(x)
+        return np.array([])
+        gradx0 = x[0] * (self.radius / (rval-1)) / self.sigma2
+        gradx1 = x[1] * (self.radius / (rval-1)) / self.sigma2
+        return np.array([gradx0, gradx1])
 ```
 
 ```{code-cell} ipython3
-len(a_z)
-```
-
-```{code-cell} ipython3
-a_z.shape[0]
+dd = donutDistrib()
+res=dd.plotDensity(xlim={"low": -6, "high": 6},
+                    ylim = {"low": -4, "high": 4}, nstep=300)
+plt.contour(res.xx, res.yy, res.zz)
 ```
 
 ```{code-cell} ipython3

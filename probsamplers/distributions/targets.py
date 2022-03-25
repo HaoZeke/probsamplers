@@ -74,3 +74,22 @@ class rosenbrockBanana(baseTargetDistrib):
         gradx0 = grad[0] / self.alpha + grad[1] * self.alpha * self.beta * 2 * x[0]
         gradx1 = grad[1] * self.alpha
         return np.array([gradx0, gradx1])
+    
+    
+class donutDistrib(baseTargetDistrib):
+    def __init__(self, xmin = -6, xmax = 6,
+                 radius=2.6, sigma2=0.033):
+        super().__init__(xmin, xmax)
+        self.radius = radius
+        self.sigma2 = sigma2
+        
+    def logDensity(self, x):
+        rval = np.linalg.norm(x)
+        return -1 * np.power(rval - self.radius, 2) / self.sigma2
+    
+    def gradLogDensity(self, x):
+        rval = np.linalg.norm(x)
+        return np.array([])
+        gradx0 = x[0] * (self.radius / (rval-1)) / self.sigma2
+        gradx1 = x[1] * (self.radius / (rval-1)) / self.sigma2
+        return np.array([gradx0, gradx1])

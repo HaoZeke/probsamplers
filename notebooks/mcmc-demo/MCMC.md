@@ -28,8 +28,8 @@ import pandas as pd
 
 ```{code-cell} ipython3
 %matplotlib inline
-import numpy as np
 import matplotlib.pyplot as plt
+import matplotlib as mpl
 ```
 
 ## Internal dependencies
@@ -46,6 +46,7 @@ class baseChains(metaclass=abc.ABCMeta):
     def __init__(self, targetDist):
         self.stepNum = 0
         self.targetDist = targetDist
+        self.tryplot()
         
     @classmethod
     def __subclasshook__(cls, subclass):
@@ -65,6 +66,34 @@ class baseChains(metaclass=abc.ABCMeta):
         """Take a sampling step"""
         raise NotImplementedError
         
+    def tryplot(self):
+        """Determine if there is any point setting up plotting environments"""
+        import sys
+        import importlib
+        if "matplotlib" in sys.modules or (spec := importlib.util.find_spec("matplotlib")) is not None:
+            self.plotPrepareDefaults()
+        return
+        
+    def plotPrepareDefaults(self):
+        """Better defaults than normal"""
+        import matplotlib as mpl
+        import matplotlib.pyplot as plt
+        mpl.rcParams['figure.figsize'] = [12, 12]
+        mpl.rcParams['figure.dpi'] = 72
+        
+        plt.style.use('fivethirtyeight')
+        plt.rcParams['font.size'] = 14
+        plt.rcParams['axes.labelsize'] = 14
+        plt.rcParams['axes.labelweight'] = 'bold'
+        plt.rcParams['axes.titlesize'] = 14
+        plt.rcParams['xtick.labelsize'] = 10
+        plt.rcParams['ytick.labelsize'] = 10
+        plt.rcParams['legend.fontsize'] = 14
+        plt.rcParams['figure.titlesize'] = 16
+        
+        width, height = plt.figaspect(1.68)
+        fig = plt.figure(figsize=(width,height), dpi=400)
+        
     def computeMean(self, chain):
         """Computes the chain mean"""
         return np.mean(chain) # TODO: figure this out
@@ -79,11 +108,12 @@ class baseChains(metaclass=abc.ABCMeta):
         return (autocov / autocov[0])
     
     @functools.cached_property
-    def plotDensity(self, xlim={"low": -8, "high": 10},
+    def extractDensity(self, xlim={"low": -8, "high": 10},
                    ylim = {"low": -15, "high": 4}):
         return self.targetDist.plotDensity
     
     def extractXYSamples(self, accepted=True, burnin=500):
+        """Extract a pandas dataframe of the x,y pairs"""
         assert self.stepNum > burnin, f"Step must be greater than {burnin}"
         assert self.dim == 2, f"Samples only for dim == 2, got {self.dim}"
         if accepted==True:
@@ -93,16 +123,39 @@ class baseChains(metaclass=abc.ABCMeta):
         dat.columns=["x", "y"]
         return dat
     
+    def extractAllXY(self, burnin=500):
+        dat = pd.DataFrame([(x.proposal[0], x.proposal[1]) for x in self.traj[burnin:-1]])
+        dat.columns = ["x", "y"]
+        return dat
+    
     def plotTargetSamples(self, xlim={"low": -8, "high": 10},
-                   ylim = {"low": -15, "high": 4}):
+                   ylim = {"low": -15, "high": 4}, title = ""):
+        """Overlay samples on a target distribution"""
         paccepted = self.extractXYSamples(accepted=True)
         prejected = self.extractXYSamples(accepted=False)
-        res = self.plotDensity(xlim = xlim, ylim = ylim)
+        res = self.extractDensity(xlim = xlim, ylim = ylim)
         fig = plt.figure()
         plt.contour(res.xx, res.yy, res.zz)
-        plt.plot(prejected.x, prejected.y, 'ro')
-        plt.plot(paccepted.x, paccepted.y, 'bo')
-        return fig    
+        plt.plot(prejected.x, prejected.y, 'ro', alpha = 0.4, label = r'rejected')
+        plt.plot(paccepted.x, paccepted.y, 'bo', alpha = 0.5, label = r'accepted')
+        plt.legend()
+        plt.title(title + '- Samples')
+        plt.xlabel('X')
+        plt.ylabel('Y')
+        return fig
+    
+    def plotTrace(self, burnin=500, title = ""):
+        """Generate a trace plot"""
+        dat = self.extractAllXY(burnin=burnin)
+        fig = plt.figure()
+        plt.plot(np.arange(len(dat.x)), dat.x, label = r'$x$')
+        plt.plot(np.arange(len(dat.y)), dat.y, label = r'$y$')
+        plt.legend()
+        plt.title(title + '- Trace Plot')
+        plt.xlabel('Step')
+        plt.ylabel('Trace')
+        plt.xlim([0, self.stepNum-burnin]);
+        return fig
 ```
 
 # Random Walk Monte Carlo
@@ -154,8 +207,13 @@ while (mhSampler.stepNum < 1000):
 ```
 
 ```{code-cell} ipython3
-fig = mhSampler.plotTargetSamples()
-fig.show()
+fig = mhSampler.plotTargetSamples(title="Metropolis-Hastings")
+#fig.show()
+```
+
+```{code-cell} ipython3
+fig = mhSampler.plotTrace(title="Metropolis-Hastings")
+# fig.show()
 ```
 
 # Hamiltonian Monte Carlo
@@ -239,7 +297,16 @@ while (hmcSampler.stepNum < 600):
 
 ```{code-cell} ipython3
 fig = hmcSampler.plotTargetSamples()
-fig.show()
+#fig.show()
+```
+
+```{code-cell} ipython3
+fig = hmcSampler.plotTrace()
+# fig.show()
+```
+
+```{code-cell} ipython3
+
 ```
 
 ```{code-cell} ipython3
