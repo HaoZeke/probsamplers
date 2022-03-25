@@ -1,4 +1,5 @@
 import numpy as np
+from probsamplers import aux
 
 class MultivariateNormal():
     # Static member
@@ -14,12 +15,11 @@ class MultivariateNormal():
     
     @staticmethod
     def getNormal():
-        drawvals = namedtuple("drawvals", ['res', 'x', 'y'])
         def draw():
             pv = lambda: MultivariateNormal.rng.standard_normal() * 2 - 1
             x = pv()
             y = pv()
-            return drawvals(res=(x**2 + y**2), x=x, y=y)
+            return aux.structs.drawvals(res=(x**2 + y**2), x=x, y=y)
         w = draw()
         while (w.res >= 1.0):
             w = draw()

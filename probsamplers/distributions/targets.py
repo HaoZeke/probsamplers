@@ -6,6 +6,7 @@ from collections import namedtuple
 
 # Internal libraries
 import probsamplers.distributions as pbsd
+from probsamplers import aux
 
 class baseTargetDistrib(metaclass=abc.ABCMeta):
     def __init__(self, xmin, xmax):
@@ -37,7 +38,6 @@ class baseTargetDistrib(metaclass=abc.ABCMeta):
         
     def plotDensity(self, xlim = {"low": -1.5, "high": 1.5},
                     ylim = {"low": -1.5, "high": 1.5}, nstep = 200):
-        plotvals = namedtuple("plotvals", ['xx', 'yy', 'zz'])
         x = np.linspace(xlim['low'], xlim['high'], nstep)
         y = np.linspace(ylim['low'], ylim['high'], nstep)
         xx, yy = np.meshgrid(x,y)
@@ -45,7 +45,7 @@ class baseTargetDistrib(metaclass=abc.ABCMeta):
         for i in np.arange(0, nstep):
             for j in np.arange(0, nstep):
                 zz[i, j] = np.exp(self.logDensity([xx[i, j], yy[i, j]]))
-        return plotvals(xx = xx, yy = yy, zz = zz)
+        return aux.structs.plotvals(xx = xx, yy = yy, zz = zz)
     
 class rosenbrockBanana(baseTargetDistrib):
     def __init__(self, xmin = -6, xmax = 6,
