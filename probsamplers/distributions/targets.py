@@ -93,3 +93,30 @@ class donutDistrib(baseTargetDistrib):
         gradx0 = x[0] * (self.radius / (rval-1)) / self.sigma2
         gradx1 = x[1] * (self.radius / (rval-1)) / self.sigma2
         return np.array([gradx0, gradx1])
+    
+class funnelDistrib(baseTargetDistrib):
+    def __init__(self, xmin = -6, xmax = 6):
+        super().__init__(xmin, xmax)
+        
+    def f(self, x, m, s):
+        return -0.5 * np.log(2. * np.pi) - np.log(s) - 0.5 * np.power((np.array(x) - m) / s, 2)
+    def dfdx(self, x, m, s):
+        return -(x - m) / np.power(s, 2)
+    def dfds(self, x, m, s):
+        return np.power(x - m, 2) - np.power(s, 2) / np.power(s, 3)
+        
+    def logDensity(self, x_):
+        x = np.array([x_[1] - 2, x_[0]])
+        m0 = m1 = 0
+        s0 = 3
+        s1 = np.exp(x[0] / 2)
+        return self.f(x[0], m0, s0) + self.f([1], m1, s1)
+    
+    def gradLogDensity(self, x_):
+        x = np.array(x_[1] - 2, x_[0])
+        m0 = m1 = 0
+        s0 = 3
+        s1 = np.exp(x[0] / 2)
+        return np.array([self.dfdx(x[1], m1, np.exp(x[0] / 2)),
+                         self.dfds(x[0], m0, s0) + np.exp(x[0], 2)]*
+                         self.dfds(x[1], m1, np.exp(x[0] / 2)))
