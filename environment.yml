@@ -16,6 +16,7 @@ dependencies:
   - ipython
   - plotnine
   - yapf
+  - codetiming
   # Interactive only
   - jupyterlab
   - jupytext

@@ -27,6 +27,26 @@ import numpy as np
 import matplotlib.pyplot as plt
 ```
 
+```{code-cell} ipython3
+        import matplotlib as mpl
+        import matplotlib.pyplot as plt
+        mpl.rcParams['figure.figsize'] = [12, 12]
+        mpl.rcParams['figure.dpi'] = 72
+        
+        plt.style.use('fivethirtyeight')
+        plt.rcParams['font.size'] = 14
+        plt.rcParams['axes.labelsize'] = 14
+        plt.rcParams['axes.labelweight'] = 'bold'
+        plt.rcParams['axes.titlesize'] = 14
+        plt.rcParams['xtick.labelsize'] = 10
+        plt.rcParams['ytick.labelsize'] = 10
+        plt.rcParams['legend.fontsize'] = 14
+        plt.rcParams['figure.titlesize'] = 16
+        
+        width, height = plt.figaspect(1.68)
+        fig = plt.figure(figsize=(width,height), dpi=400)
+```
+
 ## Internal dependencies
 
 ```{code-cell} ipython3
