@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<title>Probability Distributions</title>
+<meta name="author" content="Rohit Goswami"/>
+<style type="text/css">
+.underline { text-decoration: underline; }
+</style>
+<link rel="stylesheet" href="/home/rgoswami/.config/doom/reveal/rjs/dist/reveal.css"/>
+
+<link rel="stylesheet" href="/home/rgoswami/.config/doom/reveal/rjs/dist/theme/white.css" id="theme"/>
+
+<link rel="stylesheet" href="/home/rgoswami/.config/doom/reveal/extras/robot-lung.css"/>
+
+<link rel="stylesheet" href="/home/rgoswami/.config/doom/reveal/extras/oerFragments.css"/>
+
+<link rel="stylesheet" href="/home/rgoswami/.config/doom/reveal/extras/rlExtras.css"/>
+
+<link rel="stylesheet" href="/home/rgoswami/.config/doom/reveal/extras/noImgBoxes.css"/>
+
+<link rel="stylesheet" href="/home/rgoswami/.config/doom/reveal/extras/moreCode.css"/>
+
+<link rel="stylesheet" href="/home/rgoswami/.emacs.d/.local/straight/build-28.0.50/revealjs/plugin/accessibility/helper.css"/>
+
+<link rel="stylesheet" href="/home/rgoswami/.emacs.d/.local/straight/build-28.0.50/revealjs/plugin/toc-progress/toc-progress.css"/>
+
+<link rel="stylesheet" href="/home/rgoswami/.emacs.d/.local/straight/build-28.0.50/revealjs/dist/theme/toc-style.css"/>
+
+<link rel="stylesheet" href="/home/rgoswami/.emacs.d/.local/straight/build-28.0.50/revealjs/dist/theme/fonts/source-sans-pro/source-sans-pro.css"/>
+<script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+</head>
+<body>
+<div class="line top"></div> <div class="line bottom"></div> <div class="line left"></div> <div class="line right"></div>
+<div class="reveal">
+<div class="slides">
+<section id="sec-title-slide" data-state="no-toc-progress">
+<h1 class="title">Probability Distributions</h1><h2 class="author">Rohit Goswami</h2><p class="date">Created: 2022-03-25 Fri 13:17</p>
+</section>
+
+
+
+
+
+<section>
+<section id="slide-3">
+<h2 id="3"><span class="section-number-2">1.</span> Brief Introduction</h2>
+<div class="outline-text-2" id="text-3">
+</div>
+</section>
+<section id="slide-3-1">
+<h3 id="3-1"><span class="section-number-3">1.1.</span> Hello!</h3>
+<ul>
+<li>Find me here: <a href="https://rgoswami.me">https://rgoswami.me</a></li>
+<li>Who?
+<ul>
+<li><b>Rohit Goswami</b> MInstP
+<ul>
+<li>Doctoral Researcher, University of Iceland, Faculty of Physical Sciences</li>
+
+</ul></li>
+
+</ul></li>
+
+</ul>
+<div class="leftcol" id="orgd39a010">
+<p>
+<img src="images/physUoI.png" alt="physUoI.png" />
+<img src="images/IOP-MasterLogo.png" alt="IOP-MasterLogo.png" />
+</p>
+
+</div>
+<div class="rightcol" id="org188029e">
+
+<div id="orgf999cad" class="figure">
+<p><img src="images/rannisLogo.png" alt="rannisLogo.png" />
+</p>
+</div>
+
+<div id="orgaea0dc5" class="figure">
+<p><img src="images/Hello!/2021-04-13_02-55-57_screenshot.png" alt="2021-04-13_02-55-57_screenshot.png" width="70%" height="70%" />
+</p>
+</div>
+
+</div>
+<div class="slide-footer"><br></div>
+</section>
+<section id="slide-3-2">
+<h3 id="3-2"><span class="section-number-3">1.2.</span> Logistics</h3>
+<ul class="fragment appear">
+<li>All contents will be available on request</li>
+
+</ul>
+<ul class="fragment appear">
+<li>Questions are welcome after / during the lecture</li>
+
+</ul>
+<div class="slide-footer"><br></div>
+</section>
+</section>
+<section>
+<section id="slide-4">
+<h2 id="4"><span class="section-number-2">2.</span> Beginning at the End</h2>
+<div class="outline-text-2" id="text-4">
+</div>
+</section>
+<section id="slide-4-1">
+<h3 id="4-1"><span class="section-number-3">2.1.</span> Bayes Theorem</h3>
+<ul>
+<li>We begin where most people end, with the posterior distribution</li>
+<li><a href="speagleConceptualIntroductionMarkov2020">speagleConceptualIntroductionMarkov2020</a></li>
+
+</ul>
+
+<div>
+\begin{align}
+P(\Theta_{M}|\mathbf{D}, M) &= \frac{P(\mathbf{D}|\Theta_{M}, M)P(\Theta_{M}|M)}{P(\mathbf{D}|M)}
+\end{align}
+
+</div>
+
+
+<div id="orge716a1b" class="figure">
+<p><img src="images/Bayes_Theorem/2022-03-25_12-18-45_screenshot.png" alt="2022-03-25_12-18-45_screenshot.png" width="70%" height="70%" />
+</p>
+</div>
+<div class="slide-footer"><br></div>
+
+</section>
+<section id="slide-4-2">
+<h3 id="4-2"><span class="section-number-3">2.2.</span> A Split in the Tale</h3>
+<ul>
+<li>Rosenbrock &rsquo;Banana&rsquo; Function:</li>
+
+</ul>
+
+<p>
+\(P(X) \propto {\rm exp} ( - \frac{1}{2a^2} (\sqrt{x_1^2 + x_2^2} -1 )^2  - \frac{1}{2b^2} ( x_2 - 1 )^2)\)
+</p>
+
+
+<div id="org1b1843b" class="figure">
+<p><img src="images/A_Split_in_the_Tale/2022-03-25_12-39-35_screenshot.png" alt="2022-03-25_12-39-35_screenshot.png" width="70%" height="70%" />
+</p>
+</div>
+<div class="slide-footer"><br></div>
+
+
+</section>
+</section>
+<section>
+<section id="slide-5">
+<h2 id="5"><span class="section-number-2">3.</span> From Continuous To Computable</h2>
+<div class="outline-text-2" id="text-5">
+</div>
+</section>
+<section id="slide-5-1">
+<h3 id="5-1"><span class="section-number-3">3.1.</span> First principles</h3>
+<ul>
+<li><a href="speagleConceptualIntroductionMarkov2020">speagleConceptualIntroductionMarkov2020</a></li>
+
+</ul>
+
+<div id="org8e8d7ed" class="figure">
+<p><img src="images/From_Continuous_To_Computable/2022-03-25_12-23-41_screenshot.png" alt="2022-03-25_12-23-41_screenshot.png" width="70%" height="70%" />
+</p>
+</div>
+<div class="slide-footer"><br></div>
+
+</section>
+<section id="slide-5-2">
+<h3 id="5-2"><span class="section-number-3">3.2.</span> Sampling and brute force</h3>
+
+<div id="orgda0d577" class="figure">
+<p><img src="images/Sampling_and_brute_force/2022-03-25_13-14-02_screenshot.png" alt="2022-03-25_13-14-02_screenshot.png" />
+</p>
+</div>
+
+<ul>
+<li>We will return to sampling concerns later, w.r.t to <b>autocorrelation</b></li>
+<li><a href="speagleConceptualIntroductionMarkov2020">speagleConceptualIntroductionMarkov2020</a></li>
+
+</ul>
+<div class="slide-footer"><br></div>
+
+</section>
+<section id="slide-5-3">
+<h3 id="5-3"><span class="section-number-3">3.3.</span> Formalizing concerns</h3>
+<ul>
+<li>Discretization dovetails with our understanding of computing integrals</li>
+<li>Brute force however, is numerically intractible</li>
+
+</ul>
+<p>
+Essentially we have two problems:
+</p>
+<dl>
+<dt>Problem 1</dt><dd>Generate samples \((\mathbf{x}^{r})^{R_{r=1}}\)</dd>
+<dt>Problem 2</dt><dd>Estimate expectations under a target distribution</dd>
+
+</dl>
+
+<div>
+\begin{align}
+\Phi \equiv \langle \phi(\mathbf{x}) \rangle \equiv \int d^{N}\mathbf{x}P(\mathbf{x})\phi(\mathbf{x})
+\end{align}
+
+</div>
+
+
+<p>
+<a href="mackayInformationTheoryInference">mackayInformationTheoryInference</a>
+</p>
+<div class="slide-footer"><br></div>
+
+</section>
+</section>
+<section>
+<section id="slide-6">
+<h2 id="6"><span class="section-number-2">4.</span> Whirlwind tour of sampling strategies</h2>
+<ul>
+<li>Almost entirely thanks to <a href="mackayInformationTheoryInference">mackayInformationTheoryInference</a></li>
+
+</ul>
+<div class="slide-footer"><br></div>
+</section>
+<section id="slide-6-1">
+<h3 id="6-1"><span class="section-number-3">4.1.</span> First steps</h3>
+<ul>
+<li>Uniformly evaluating the state space of a distribution</li>
+<li>Reweighing (WHAM / <b>Importance sampling</b>)</li>
+
+</ul>
+
+
+<div id="org0501d3f" class="figure">
+<p><img src="images/Whirlwind_tour_of_sampling_strategies/2022-03-25_12-59-14_screenshot.png" alt="2022-03-25_12-59-14_screenshot.png" width="70%" height="70%" />
+</p>
+</div>
+<div class="slide-footer"><br></div>
+</section>
+<section id="slide-6-2">
+<h3 id="6-2"><span class="section-number-3">4.2.</span> Rejections</h3>
+
+<div id="org1c86387" class="figure">
+<p><img src="images/Rejections/2022-03-25_13-00-34_screenshot.png" alt="2022-03-25_13-00-34_screenshot.png" width="70%" height="70%" />
+</p>
+</div>
+
+<ul>
+<li>We require \(P(x)\propto P^{\star}(x)\)</li>
+<li>Draw from \(Q(x) \propto Q^{\star}(x)\)
+<ul>
+<li>Know \(c\) s.t. \(cQ^{\star}(x)>P^{\star}(x)\)</li>
+<li>Randomly choose \((x,u)\), accept if below \(P^{\star}(x)\)</li>
+
+</ul></li>
+
+</ul>
+<div class="slide-footer"><br></div>
+
+</section>
+<section id="slide-6-3">
+<h3 id="6-3"><span class="section-number-3">4.3.</span> Metropolis Hastings</h3>
+<div class="leftcol" id="org7ab4421">
+<p>
+
+</p>
+
+<ul>
+<li>Correlated samples</li>
+<li>Proposal <b>density</b>
+<ul>
+<li><i>detailed</i> balance</li>
+
+</ul></li>
+
+</ul>
+
+<p>
+\[ \alpha = \frac{P^{\star}(x^{\prime})Q(x^{(t)};x^{\prime})}{P^{\star}(x^{t})Q(x^{\prime}; x^{(t)})} \]
+</p>
+
+<ul>
+<li>Crucially, rejected samples re-write the the state</li>
+
+</ul>
+
+</div>
+
+
+<div id="org1361546" class="figure">
+<p><img src="images/Metropolis_Hastings/2022-03-25_13-07-16_screenshot.png" alt="2022-03-25_13-07-16_screenshot.png" width="50%" height="50%" />
+</p>
+</div>
+<div class="slide-footer"><br></div>
+
+</section>
+</section>
+<section>
+<section id="slide-7">
+<h2 id="7"><span class="section-number-2">5.</span> Efficiency</h2>
+<div class="outline-text-2" id="text-7">
+</div>
+</section>
+<section id="slide-7-1">
+<h3 id="7-1"><span class="section-number-3">5.1.</span> Hamiltonian Monte Carlo</h3>
+<ul>
+<li>Draw from an</li>
+
+</ul>
+<div class="slide-footer"><br></div>
+
+</section>
+</section>
+<section>
+<section id="slide-8">
+<h2 id="8"><span class="section-number-2">6.</span> Conclusions</h2>
+<div class="outline-text-2" id="text-8">
+</div>
+</section>
+<section id="slide-8-1">
+<h3 id="8-1"><span class="section-number-3">6.1.</span> Omitted Topics</h3>
+<dl class="fragment appear">
+<dt>Correctness</dt><dd>Convergence concerns in particular form a host of supplementary details</dd>
+
+</dl>
+<dl class="fragment appear">
+<dt>Performance</dt><dd>Parallelism was only briefly discussed but the efficient use of algorithms is crucial to the computaional sciences</dd>
+
+</dl>
+<dl class="fragment appear">
+<dt>Code Review Practices</dt><dd>Along with testing and other maintainence burdens</dd>
+
+</dl>
+<dl class="fragment appear">
+<dt>Inter process communication</dt><dd>Across networks and process, including serialization</dd>
+
+</dl>
+<div class="slide-footer"><br></div>
+</section>
+</section>
+<section>
+<section id="slide-9">
+<h2 id="9"><span class="section-number-2">7.</span> The End</h2>
+<div class="outline-text-2" id="text-9">
+</div>
+</section>
+<section id="slide-bibliography">
+<h3 id="bibliography"><span class="section-number-3">7.1.</span> Bibliography</h3>
+<p>
+<a href="refs.bib">refs.bib</a>
+</p>
+<div class="slide-footer"><br></div>
+
+</section>
+<section id="slide-9-2" data-background="#005ab6">
+<h3 id="9-2"><span class="section-number-3">7.2.</span> Thanks!</h3>
+<div class="slide-footer"><br></div>
+</section>
+</section>
+</div>
+</div>
+<script src="/home/rgoswami/.config/doom/reveal/rjs/dist/reveal.js"></script>
+<script src="/home/rgoswami/.config/doom/reveal/rjs/plugin/notes/notes.js"></script>
+<script src="/home/rgoswami/.config/doom/reveal/rjs/plugin/search/search.js"></script>
+<script src="/home/rgoswami/.config/doom/reveal/rjs/plugin/zoom/zoom.js"></script>
+<script src="/home/rgoswami/.emacs.d/.local/straight/build-28.0.50/revealjs/dist/theme/hidelinks.js"></script>
+<script>
+// Full list of configuration options available here:
+// https://github.com/hakimel/reveal.js#configuration
+Reveal.initialize({
+
+controls: true,
+progress: true,
+history: true,
+center: true,
+slideNumber: 't',
+rollingLinks: false,
+keyboard: true,
+mouseWheel: true,
+fragmentInURL: true,
+hashOneBasedIndex: false,
+pdfSeparateFragments: false,
+overview: true,
+margin: 0.20,
+
+transition: 'fade',
+transitionSpeed: 'default',
+showNotes: window.location.search.match( /print-pdf/gi ) ? 'separate-page' : false,
+
+// Plugins with reveal.js 4.x
+plugins: [ RevealNotes, RevealSearch, RevealZoom ],
+
+// Optional libraries used to extend reveal.js
+dependencies: [
+]
+
+});
+</script>
+</body>
+</html>
