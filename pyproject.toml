@@ -1,0 +1,51 @@
+[tool.pdm]
+
+[project]
+name = "probsamplers"
+version = "0.1.0"
+description = "JupyterLab version of mcmc-demo"
+authors = [
+    {name = "Rohit Goswami", email = "rog32@hi.is"},
+]
+dependencies = ["numpy", "scipy"]
+requires-python = ">3.10"
+readme = "README.rst"
+license = {text = "MIT"}
+
+[project.urls]
+"Homepage" = "https://github.com/HaoZeke/probsamplers"
+"Bug Tracker" = "https://github.com/HaoZeke/probsamplers/issues"
+
+[project.optional-dependencies]
+plotting = [
+    "jupyter",
+    "matplotlib>=2.2.0",
+]
+
+[build-system]
+requires = ["setuptools>=61", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.pdm.dev-dependencies]
+test = [
+    "pytest>=7.2.1",
+]
+lint = [
+    "black>=23.1.0",
+]
+interactive = [
+    "ipython>=8.9.0",
+    "jupytext>=1.14.4",
+]
+docs = [
+    "sphinx>=6.1.3",
+]
+
+[tool.pdm.scripts]
+lint = "black"
+test = "pytest"
+all = {composite = ["lint tests/ probsamplers/", "test -v tests/"]}
+
+[tool.black]
+line-length = 80
+target-version = ['py310']

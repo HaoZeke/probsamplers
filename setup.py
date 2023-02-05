@@ -15,8 +15,4 @@ setup(
     extras_require={'plotting': ['matplotlib>=2.2.0', 'jupyter']},
     setup_requires=['pytest-runner', 'flake8'],
     tests_require=['pytest'],
-    # entry_points={
-    #     'console_scripts': ['my-command=exampleproject.example:main']
-    # },
-    # package_data={'exampleproject': ['data/schema.json']}
 )

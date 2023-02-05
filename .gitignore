@@ -1,4 +1,5 @@
 # Project specific
+.pdm.toml
 *.ipynb
 
 # Created by https://www.toptal.com/developers/gitignore/api/git
