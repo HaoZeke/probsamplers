@@ -38,7 +38,7 @@ import matplotlib as mpl
 
 ```{code-cell} ipython3
 import probsamplers.distributions as pbsd
-from probsamplers import aux
+from probsamplers import _aux
 ```
 
 # MCMC Base Class
@@ -200,7 +200,7 @@ class RandomWalkMetropolisHastingsMC(baseChains):
         else:
             self.chain.append(self.chain[-1])
             isaccept = False
-        self.traj.append(aux.structs.mcmcData(step = self.stepNum,
+        self.traj.append(_aux.structs.mcmcData(step = self.stepNum,
                             acceptance = isaccept,
                             proposal = copy.deepcopy(proposal),
                             proposalDistCovariance = proposalDist.covMat))
@@ -265,7 +265,7 @@ class HamiltonianMC(baseChains):
         currentPositions = self.chain[-1]
         currentMomenta = pbsd.mvn.MultivariateNormal.getMVNSample(self.dim)
         if self.stepNum == 0:
-            self.traj.append(aux.structs.mcmcData(step = self.stepNum,
+            self.traj.append(_aux.structs.mcmcData(step = self.stepNum,
                                              acceptance = True, 
                                              proposal = currentPositions,
                                              proposalDistCovariance = None))
@@ -297,7 +297,7 @@ class HamiltonianMC(baseChains):
         else:
             self.chain.append(currentPositions)
             isaccept = False
-        self.traj.append(aux.structs.mcmcData(step = self.stepNum,
+        self.traj.append(_aux.structs.mcmcData(step = self.stepNum,
                             acceptance = isaccept,
                             proposal = copy.deepcopy(propPositions),
                             proposalDistCovariance = None))
@@ -420,7 +420,7 @@ class hmcNUTS(baseChains):
                     isaccept = True
                 else:
                     isaccept = False
-                self.traj.append(aux.structs.mcmcData(step = self.stepNum, acceptance = True, proposal = copy.deepcopy(currentPositions), proposalDistCovariance = None))
+                self.traj.append(_aux.structs.mcmcData(step = self.stepNum, acceptance = True, proposal = copy.deepcopy(currentPositions), proposalDistCovariance = None))
             blah = {'q_p': q_p,
                      'p_p': p_p,
                      'q_m': q_m,
@@ -468,7 +468,7 @@ class hmcNUTS(baseChains):
             j = j+1
             
             isaccept = True
-            self.traj.append(aux.structs.mcmcData(step = self.stepNum, acceptance = True, proposal = copy.deepcopy(q), proposalDistCovariance = None))
+            self.traj.append(_aux.structs.mcmcData(step = self.stepNum, acceptance = True, proposal = copy.deepcopy(q), proposalDistCovariance = None))
             self.stepNum += 1
         
             

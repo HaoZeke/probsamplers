@@ -1,5 +1,5 @@
 import numpy as np
-from probsamplers import aux
+from probsamplers import _aux
 import scipy.stats
 
 
@@ -22,7 +22,7 @@ class MultivariateNormal:
             pv = lambda: MultivariateNormal.rng.standard_normal() * 2 - 1
             x = pv()
             y = pv()
-            return aux.structs.drawvals(res=(x**2 + y**2), x=x, y=y)
+            return _aux.structs.drawvals(res=(x**2 + y**2), x=x, y=y)
 
         w = draw()
         while w.res >= 1.0:

@@ -1,3 +1,5 @@
+from probsamplers import _aux
+
 class baseChains(metaclass=abc.ABCMeta):
     def __init__(self, targetDist):
         self.stepNum = 0
@@ -189,7 +191,7 @@ class RandomWalkMetropolisHastingsMC(baseChains):
             self.chain.append(self.chain[-1])
             isaccept = False
         self.traj.append(
-            aux.structs.mcmcData(
+            _aux.structs.mcmcData(
                 step=self.stepNum,
                 acceptance=isaccept,
                 proposal=copy.deepcopy(proposal),
@@ -223,7 +225,7 @@ class HamiltonianMC(baseChains):
         currentMomenta = pbsd.mvn.MultivariateNormal.getMVNSample(self.dim)
         if self.stepNum == 0:
             self.traj.append(
-                aux.structs.mcmcData(
+                _aux.structs.mcmcData(
                     step=self.stepNum,
                     acceptance=True,
                     proposal=currentPositions,
@@ -268,7 +270,7 @@ class HamiltonianMC(baseChains):
             self.chain.append(currentPositions)
             isaccept = False
         self.traj.append(
-            aux.structs.mcmcData(
+            _aux.structs.mcmcData(
                 step=self.stepNum,
                 acceptance=isaccept,
                 proposal=copy.deepcopy(propPositions),

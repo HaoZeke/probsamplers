@@ -51,7 +51,7 @@ import matplotlib.pyplot as plt
 
 ```{code-cell} ipython3
 import probsamplers.distributions as pbsd
-from probsamplers import aux
+from probsamplers import _aux
 ```
 
 # MCMC
@@ -93,7 +93,7 @@ class baseTargetDistrib(metaclass=abc.ABCMeta):
         for i in np.arange(0, nstep):
             for j in np.arange(0, nstep):
                 zz[i, j] = np.exp(self.logDensity([xx[i, j], yy[i, j]]))
-        return aux.structs.plotvals(xx = xx, yy = yy, zz = zz)
+        return _aux.structs.plotvals(xx = xx, yy = yy, zz = zz)
 ```
 
 +++ {"tags": []}

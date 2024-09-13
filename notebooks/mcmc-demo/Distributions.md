@@ -30,7 +30,7 @@ import matplotlib.pyplot as plt
 ## Internal dependencies
 
 ```{code-cell} ipython3
-import probsamplers.aux as aux
+import probsamplers._aux as aux
 ```
 
 ```{code-cell} ipython3

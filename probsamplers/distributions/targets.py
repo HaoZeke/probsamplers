@@ -6,7 +6,7 @@ from collections import namedtuple
 
 # Internal libraries
 import probsamplers.distributions as pbsd
-from probsamplers import aux
+from probsamplers import _aux
 
 
 class baseTargetDistrib(metaclass=abc.ABCMeta):
@@ -52,7 +52,7 @@ class baseTargetDistrib(metaclass=abc.ABCMeta):
         for i in np.arange(0, nstep):
             for j in np.arange(0, nstep):
                 zz[i, j] = np.exp(self.logDensity([xx[i, j], yy[i, j]]))
-        return aux.structs.plotvals(xx=xx, yy=yy, zz=zz)
+        return _aux.structs.plotvals(xx=xx, yy=yy, zz=zz)
 
 
 class rosenbrockBanana(baseTargetDistrib):
