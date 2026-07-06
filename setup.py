@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='probsamplers',
-    version='0.1.1',
+    version='0.1.2',
     description='JupyterLab version of mcmc-demo',
     author='Rohit Goswami',
     author_email='rog32@hi.is',
